@@ -11,8 +11,8 @@
         With my ventures into shaders growing more and more complex, I figured this was the perfect opportunity to implement some better lighting!
     </p>
 </div>
-<img src="https://helodity.xyz/blog/img/lighting/pfp_light.jpg" height="256">
-<img src="https://helodity.xyz/blog/img/lighting/pfp_nolight.jpg" height="256">
+<img src="img/lighting/pfp_light.jpg" height="256">
+<img src="img/lighting/pfp_nolight.jpg" height="256">
 <p class="image-description">One of my most recent drawings, with the lighting layers visible and hidden respectively. The different is astonishing!</p>
 
 <br>
@@ -30,7 +30,7 @@
     Other objects, like particles or mobs, also are affected by these effects. Since they can move around, they just sample the sector brightness underneath them. Weather does not 
     need to be accounted for, since it draws over everything.
 </p>
-<img src="https://helodity.xyz/blog/img/lighting/mob_lighting_old.jpg" height="256">
+<img src="img/lighting/mob_lighting_old.jpg" height="256">
 <p class="image-description">Despite the mob being half in a fully lit sector, it is rendered entirely black.</p>
 
 <br>
@@ -61,16 +61,16 @@
     Multiply was by far the closest to what the effect had, but there was one small catch, multiple lights did not stack correctly. Ideally, a red light with a green light would create yellow.
     Here, it was making black. The revalation here was that lights needed to add among themselves, but multiply on the environment. 
 </p>
-<img src="https://helodity.xyz/blog/img/lighting/light_broken.jpg" height="256">
-<img src="https://helodity.xyz/blog/img/lighting/light_fixed.jpg" height="256">
+<img src="img/lighting/light_broken.jpg" height="256">
+<img src="img/lighting/light_fixed.jpg" height="256">
 <p class="image-description">Comparison between pure multiplication, and adding the lights before multiplying on the background.</p>
 <p>
     That's the core of the effect, but it's still darkening things instead of brightening them up. To reverse the effect, we need to introduce the aforementioned black overlay.
     Having the lights cut through the black overlay is quite self explanitory, we can just add the light color to the image. Replace the solid image with a circular gradient, and
     you've got the finished effect!
 </p>
-<img src="https://helodity.xyz/blog/img/lighting/light_overlay.png" height="256">
-<img src="https://helodity.xyz/blog/img/lighting/light_final.jpg" height="256">
+<img src="img/lighting/light_overlay.png" height="256">
+<img src="img/lighting/light_final.jpg" height="256">
 <p class="image-description">Turns out, we can use overlays that aren't pure black! This helps a ton down the line.</p>
 <p>
     In summary, we essentially build a lightmap that contains all the shading in the scene (our black overlay), and then add each light's color to the it. Then, we multiply the entire lightmap
@@ -125,12 +125,12 @@
 <p>
     Did you think I wasn't going to show off the finished product????
 </p>
-<img src="https://helodity.xyz/blog/img/lighting/playfulYard.png" height="256">
-<img src="https://helodity.xyz/blog/img/lighting/leaders.png" height="256">
+<img src="img/lighting/playfulYard.png" height="256">
+<img src="img/lighting/leaders.png" height="256">
 <br>
 <video height="240" controls>
-    <source src="https://helodity.xyz/blog/img/lighting/showcase_ship.mp4" type="video/mp4">
+    <source src="img/lighting/showcase_ship.mp4" type="video/mp4">
 </video>
 <video height="240" controls>
-    <source src="https://helodity.xyz/blog/img/lighting/showcase_vid.mp4" type="video/mp4">
+    <source src="img/lighting/showcase_vid.mp4" type="video/mp4">
 </video>
