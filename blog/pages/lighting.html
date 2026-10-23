@@ -1,0 +1,136 @@
+<p id="date" class="blog-date">October 20th, 2026</p>
+<h2 id="title">Implementing 2D Lighting in Pikifen</h2>
+<div id="summary">
+    <p>
+        A few weeks ago, we started making proof of concepts for <a href="https://github.com/Espyo/Pikifen">Pikifen's</a> next update.
+        We received a lot of negative feedback, mostly centered around the graphics being... less than ideal.
+        Unfortunately, everyone working on Pikifen are programmers first and artists second. Regardless, we wanted to fix this pain point as much as possible.
+    <p>
+    <p>
+        While I enjoy drawing as a hobby, I'm far from a professional artist. However, I've learned that even basic lighting in a scene provides a massive boost in quality. 
+        With my ventures into shaders growing more and more complex, I figured this was the perfect opportunity to implement some better lighting!
+    </p>
+</div>
+<img src="https://helodity.xyz/blog/img/lighting/pfp_light.jpg" height="256">
+<img src="https://helodity.xyz/blog/img/lighting/pfp_nolight.jpg" height="256">
+<p class="image-description">One of my most recent drawings, with the lighting layers visible and hidden respectively. The different is astonishing!</p>
+
+<br>
+<h3>The Current System</h3>
+<p>
+    Before looking at how to improve the system, I think it's worth explaining what the old system did. Area lighting is primarily defined through two key components: Weather, and
+    sector brightness. Both of these effects are overlaid on the area as its drawn, which simulates lighting.
+</p>
+<p>
+    Sector brightness is straightforward, darkening the sector when drawn. Weather is slightly more complicated, instead drawing an overlay on the
+    entire screen of the specified weather color. Weather can change throughout the day, which allows for things like a day night cycle. For example, you could simulate a sunset
+    by changing the overlay from clear, to orange, then to a dark blue. Weather has a few other effects, but I will bring them up when they become relevant.
+</p>
+<p>
+    Other objects, like particles or mobs, also are affected by these effects. Since they can move around, they just sample the sector brightness underneath them. Weather does not 
+    need to be accounted for, since it draws over everything.
+</p>
+<img src="https://helodity.xyz/blog/img/lighting/mob_lighting_old.jpg" height="256">
+<p class="image-description">Despite the mob being half in a fully lit sector, it is rendered entirely black.</p>
+
+<br>
+<h3>The Current System's Problems</h3>
+<p>
+    With this knowledge, there's a few aspects that stand out. 
+    Firstly, Mob and sector lighting is handled differently. If mobs only sample the light of the sector beneath it, they can never have on section of them lit. 
+    Secondly, weather and sector brightness are applied in two separate steps. This means that a light that only affects the weather layer
+    could never brighten a sector beyond its brightness. If the light were to affect both layers, it would end up being be twice as strong.
+    Thirdly, there are many interactions that currently work well with sector lighting, but do not play nicely with weather effects. Notably, additive particles, which are meant
+    to ignore lighting effects, are still influenced by weather.
+</p>
+<p>
+    This paints a pretty clear picture of some overarching drawing changes that need to be done to support these changes. Lighting effects all need to be on a single layer,
+    which is then drawn on top of the fully lit base. Mobs also need to be lit by this layer, similarly to how they currently are with weather.
+</p>
+
+<br>
+<h3>Planning the New System</h3>
+<p>
+    Having a decent understanding of what needs to be done, I could start looking at how to do it. The first thing I did was to Google "2d Lighting" since I knew this
+    concept has been done a ton by now. I found <a href="https://youtu.be/6Q0FnPy9Orc">this video</a>, which was nearly a perfect example of what I was looking to implement.
+    Unfortunately, the video didn't go into the details of how the system worked, but it was fairly straightforward to assume what it was doing. 
+    It appeared to be a black overlay, with holes cut out depending on the color of the light. It appeared to use some non-default blend setting for this as well. Immediately after
+    seeing that, I booted up Inkscape to toy around with some different blend options. 
+</p>
+<p>
+    Multiply was by far the closest to what the effect had, but there was one small catch, multiple lights did not stack correctly. Ideally, a red light with a green light would create yellow.
+    Here, it was making black. The revalation here was that lights needed to add among themselves, but multiply on the environment. 
+</p>
+<img src="https://helodity.xyz/blog/img/lighting/light_broken.jpg" height="256">
+<img src="https://helodity.xyz/blog/img/lighting/light_fixed.jpg" height="256">
+<p class="image-description">Comparison between pure multiplication, and adding the lights before multiplying on the background.</p>
+<p>
+    That's the core of the effect, but it's still darkening things instead of brightening them up. To reverse the effect, we need to introduce the aforementioned black overlay.
+    Having the lights cut through the black overlay is quite self explanitory, we can just add the light color to the image. Replace the solid image with a circular gradient, and
+    you've got the finished effect!
+</p>
+<img src="https://helodity.xyz/blog/img/lighting/light_overlay.png" height="256">
+<img src="https://helodity.xyz/blog/img/lighting/light_final.jpg" height="256">
+<p class="image-description">Turns out, we can use overlays that aren't pure black! This helps a ton down the line.</p>
+<p>
+    In summary, we essentially build a lightmap that contains all the shading in the scene (our black overlay), and then add each light's color to the it. Then, we multiply the entire lightmap
+    onto the scene to get our finished lighting! Of course, all of that is easier said than done. So? Let's do it.
+</p>
+
+<br>
+<h3>Implementing the New System</h3>
+<p>
+    Our system relies on three main steps, getting a base layer of all the shading, adding the light to it, and then multiplying it onto our existing scene. Here's how I tackled each step, I'll try to avoid
+    going into too much detail as I've already discussed the core concepts.
+</p>
+<p>
+    Earlier, I mentioned that area lighting comes primarily from weather and sector brightness. Weather is drawn on the entire screen after the entire scene is drawn, and sector brightness is drawn when the sector itself is.
+    This needed to change. We can start by filling the lightmap with our weather color. This gets the weather effect onto our light map and gives us a good base to start drawing with. Sector brightness was next up. This
+    required a slight refactor, where each sector when drawn remains fullbright, and then drawing the shading onto our lightmap. This had the added benefit of not needing to do additional work for the various types of sectors
+    such as liquid hazards. After compiling all the lighting, we pass it onto the shader to apply lights.
+</p>
+<p>
+    Next up was adding the lights. I decided to allow each mob to define a light color and radius to allow customizablility without too many lights impacting performance. While this method isn't using raytracing, I previously
+    released a shader that was a bit too intensive, and while seeing it freeze people's computers <i>was</i> funny, I didn't want it to happen again. I also made sure to cull any off screen lights, since the less lights
+    that are passed to the shader, the faster it'll run.
+</p>
+<p>
+    Lastly, multiplying it onto our existing scene. This was as simple as drawing our finished lightmap with a multiplicative blender applied! To ensure everything in the world was drawn with lighting applied, the lightmap was
+    drawn on after all the world components were drawn, but before any HUD elements were. 
+</p>
+
+<br>
+<h3>Additional Considerations</h3>
+<p>
+    There were a few minor setbacks. They each generally boiled down to a few line fixes here and there. Regardless, I'll bring them up briefly:
+</p>
+<ul>
+    <li>I was initially mapping the UV to world coordinates. This worked when cutting out of a pure black bitmap, but I had to map from 0-1 when using a lightmap. 
+    This required me to transform light positions and sizes into window coordinates before passing.</li>
+    <li>Additive particles were now being ignored by both weather AND sector brightness. To solve this, I allowed particles to draw their own lights. This made sense because additive particles were meant to be glowing, and
+    my testing showed that the light count ended up having a minimal impact on performance.</li>
+    <li>It was a deliberate choice to not allow lights to go beyond base fullbright. If you would like to, I believe setting your lightmap to be a floating point bitmap would let you do this.</li>
+</ul>
+
+<br>
+<h3>Conclusion</h3>
+<p>
+    I'm still working on the system as of writing this. Pikifen wasn't designed with this lighting in mind, so I'm trying to break as little as possible (and trust me, I've broken a lot with this already). The next few weeks
+    will likely be dedicated to testing the numerous edge cases, and updating all of the existing areas to look a lot better. Regardless, I'm very proud with how it's shaping up to be, and hope to see these changes get greenlit
+    as the kinks get worked out.
+</p>
+
+<br>
+<h3>Showcase</h3>
+<p>
+    Did you think I wasn't going to show off the finished product????
+</p>
+<img src="https://helodity.xyz/blog/img/lighting/playfulYard.png" height="256">
+<img src="https://helodity.xyz/blog/img/lighting/leaders.png" height="256">
+<br>
+<video height="240" controls>
+    <source src="https://helodity.xyz/blog/img/lighting/showcase_ship.mp4" type="video/mp4">
+</video>
+<video height="240" controls>
+    <source src="https://helodity.xyz/blog/img/lighting/showcase_vid.mp4" type="video/mp4">
+</video>
