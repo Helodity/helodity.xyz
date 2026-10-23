@@ -32,7 +32,7 @@
 	<br>
 	<h3><i>Proud Owner of a Riced Linux Desktop</i></h3>
 	<p>KDE, sorry no dotfiles availible.</p><br>
-	<img src="img/rice.png" style="max-height: 256px; max-width:100%"><br>
+	<img src="img/rice.webp" style="max-height: 256px; max-width:100%"><br>
 </div>
 <br>
 <?php include 'includes/footer.php'; ?>
