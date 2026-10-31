@@ -1,5 +1,6 @@
 <?php
 	$PAGE_NAME = "Projects";
+	$HAS_STYLE = true;
 	include '../includes/header.php';
 	
 ?>

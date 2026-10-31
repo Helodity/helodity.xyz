@@ -15,6 +15,9 @@ $header_info = [
 		<meta name="viewport" charset="utf-8" content="width=device-width, initial-scale=1">
 		<title><?= $SITE_NAME ?></title>
 		<link href='<?= $SITE_ROOT ?>/includes/main_style.css' type="text/css" rel="stylesheet" />
+		<?php if(isset($HAS_STYLE) && $HAS_STYLE) { ?>
+		<link href='style.css' type="text/css" rel="stylesheet" />
+		<?php } ?>
 		<link rel="icon" type="image/x-icon" href='<?= $SITE_ROOT ?>/img/icon.png'>
 	</head>
 	<body>
